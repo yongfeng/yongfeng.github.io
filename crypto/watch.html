@@ -20,46 +20,82 @@
         }
     </style>
     <script>
-        var collection = [{
-            type: "hodl",
-            list: "bitcoin,ethereum,avalanche-2,fantom,ripple,cardano,polkadot,efinity"
+        var collection = [
+            {
+                type: "seigniorage",
+                list: "chargedefi-charge,chargedefi-static,hermes,harmes-shares"
+            },
+            {
+                type: "farm",
+                list: "looksrare,liquiddriver,spiritswap,protofi"
+            },
 
-        },
-        {
-            type: "seigniorage",
-            list: "chargedefi-charge,chargedefi-static,hermes,harmes-shares"
-        },
-        {
-            type: "farm",
-            list: "looksrare,liquiddriver,spiritswap,protofi"
-        },
-        {
-            type: "masternode",
-            list: "dash-diamond",
-        },
-        {
-            type: "node",
-            list: "strong,vapornodes,louverture"
-        }
-        ];
+            {
+                type: "node",
+                list: "strong,vapornodes,louverture,thor,project-x-nodes"
+            },
+            {
+                type: "hodl",
+                list: "bitcoin,ethereum,avalanche-2,fantom,ripple,cardano,polkadot,efinity"
+
+            }, {
+                type: "masternode",
+                list: "dash-diamond",
+            }];
+
+        var state = "M"; // multiple list
+        var toggleLabel = "Single List";
 
         function _onload() {
-            document.getElementById("reloadbutton").addEventListener("click", function () {
-                var container = document.getElementById("container");
-                while (container.firstChild) {
-                    container.removeChild(container.lastChild);
-                }
-                loadWatchItems();
+            document.getElementById("reloadbutton").addEventListener("click", () => reload());
+
+            document.getElementById("singlebutton").addEventListener("click", (e) => {
+                toggle();
+                e.target.textContent = toggleLabel;
             });
 
-            loadWatchItems();
+            reload();
         }
 
-        function loadWatchItems() {
-            console.log("loading");
+        function reload() {
+            state == "M" ? loadMultipleList() : loadSingleList();
+        }
 
+        function toggle() {
+            if (state == "M") {
+                state = "S";
+                loadSingleList();
+                toggleLabel = "Multiple List";
+            } else {
+                state = "M";
+                loadMultipleList();
+                toggleLabel = "Single List"
+            }
+        }
+
+        function clearContainer() {
+            var container = document.getElementById("container");
+            while (container.firstChild) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function loadSingleList() {
+            clearContainer();
+
+            var list = collection.map(i => i.list).join();
+            createWatchList({ list: list });
+        }
+
+        function loadMultipleList() {
+            clearContainer();
+
+            collection.forEach((item) => createWatchList(item));
+        }
+
+        function createWatchList(item) {
             var hole = document.getElementById("container");
-            collection.forEach(function (item) { hole.appendChild(createListWidget(item)) });
+            hole.appendChild(createListWidget(item));
         }
 
         function createListWidget(item) {
@@ -69,13 +105,15 @@
             // example:
             //     <coingecko-coin-list-widget id="listwidget" coin-ids="bitcoin" currency="usd" locale="en">
             //     </coingecko-coin-list-widget>
-            var h = document.createElement("h2");
-            h.textContent = item.type;
-            console.log(h);
-            wrapper.appendChild(h);
+            if (item.type) {
+                var h = document.createElement("h2");
+                h.textContent = item.type;
+                console.log(h);
+                wrapper.appendChild(h);
+            }
 
             var w = document.createElement("coingecko-coin-list-widget");
-            w.id = item.type;
+            if (item.type) { w.id = item.type; }
             w.setAttribute("currency", "usd");
             w.setAttribute("locale", "en");
             w.setAttribute("coin-ids", item.list);
@@ -92,7 +130,8 @@
     <h1>Watch List</h1>
 
     <button class="primary" id="reloadbutton">Reload</button>
-    <div class=" container">
+    <button class="shadowed" id="singlebutton">Single List</button>
+    <div class="container">
         <div class="row" id="container"></div>
     </div>
 
