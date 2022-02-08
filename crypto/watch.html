@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch List - Oxl☰yrd</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+
+    <script src="https://widgets.coingecko.com/coingecko-coin-list-widget.js"></script>
+    <style>
+        .w-hole {
+            display: table-row
+        }
+
+        .w-section {
+            padding: 10px;
+            min-width: 300px;
+        }
+    </style>
+    <script>
+        var collection = [{
+            type: "hodl",
+            list: "bitcoin,ethereum,avalanche-2,fantom,ripple,cardano,polkadot,efinity"
+
+        },
+        {
+            type: "seigniorage",
+            list: "chargedefi-charge,chargedefi-static,hermes,harmes-shares"
+        },
+        {
+            type: "farm",
+            list: "looksrare,liquiddriver,spiritswap,protofi"
+        },
+        {
+            type: "masternode",
+            list: "dash-diamond",
+        },
+        {
+            type: "node",
+            list: "strong,vapornodes,louverture"
+        }
+        ];
+
+        function _onload() {
+            document.getElementById("reloadbutton").addEventListener("click", function () {
+                var container = document.getElementById("container");
+                while (container.firstChild) {
+                    container.removeChild(container.lastChild);
+                }
+                loadWatchItems();
+            });
+
+            loadWatchItems();
+        }
+
+        function loadWatchItems() {
+            console.log("loading");
+
+            var hole = document.getElementById("container");
+            collection.forEach(function (item) { hole.appendChild(createListWidget(item)) });
+        }
+
+        function createListWidget(item) {
+            var wrapper = document.createElement("div");
+            wrapper.className = "col-sm w-section";
+
+            // example:
+            //     <coingecko-coin-list-widget id="listwidget" coin-ids="bitcoin" currency="usd" locale="en">
+            //     </coingecko-coin-list-widget>
+            var h = document.createElement("h2");
+            h.textContent = item.type;
+            console.log(h);
+            wrapper.appendChild(h);
+
+            var w = document.createElement("coingecko-coin-list-widget");
+            w.id = item.type;
+            w.setAttribute("currency", "usd");
+            w.setAttribute("locale", "en");
+            w.setAttribute("coin-ids", item.list);
+
+            console.log(w);
+            wrapper.appendChild(w);
+
+            return wrapper;
+        }
+    </script>
+</head>
+
+<body onload="_onload()">
+    <h1>Watch List</h1>
+
+    <button class="primary" id="reloadbutton">Reload</button>
+    <div class=" container">
+        <div class="row" id="container"></div>
+    </div>
+
+
+</body>
+
+</html>
