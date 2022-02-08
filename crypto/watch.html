@@ -49,11 +49,15 @@
         function _onload() {
             document.getElementById("reloadbutton").addEventListener("click", () => reload());
 
+
             document.getElementById("singlebutton").addEventListener("click", (e) => {
                 toggle();
                 e.target.textContent = toggleLabel;
             });
 
+            var s = localStorage.getItem("state");
+            if (s) { state = s; if (state == "S") { toggleLabel = "Multiple List" } }
+            document.getElementById("singlebutton").textContent = toggleLabel;
             reload();
         }
 
@@ -71,6 +75,7 @@
                 loadMultipleList();
                 toggleLabel = "Single List"
             }
+            localStorage.setItem("state", state);
         }
 
         function clearContainer() {
