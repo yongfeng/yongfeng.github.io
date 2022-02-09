@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch List - Oxl☰yrd</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" href="favicon.png">
+    <title>Watch List - Oxl☰yrd</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
 
     <script src="https://widgets.coingecko.com/coingecko-coin-list-widget.js"></script>
@@ -23,6 +24,11 @@
             height: 100%;
             padding-left: 20px;
 
+        }
+
+        .small-text {
+            font-size: small;
+            overflow-wrap: break-word
         }
 
         .active {
@@ -41,27 +47,86 @@
 
         var state = "M"; // multiple list
         var filter = "-"; // all sections
+        var autorefresh = 30; // default: 15 secs
+
+
+        var timerId;
+        // countdown timer
+        var countdownTimer;
+        var countdownValue = 0;
+
 
         function _onload() {
             // event listeners
-            document.getElementById("reloadbutton").addEventListener("click", () => loadList());
+            document.getElementById("reloadbutton").addEventListener("click", () => refreshData());
             document.getElementById("toggolbutton").addEventListener("click", () => toggle());
             document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
-
+            document.getElementById("autorefresh").addEventListener("change", (e) => { autorefresh = e.target.value; setupAutoRefresh() });
             // initialization
+            loadSetting();
             init();
         }
 
-        function init() {
+        function loadSetting() {
             var s = localStorage.getItem("state");
             var f = localStorage.getItem("filter");
-            console.log("init - state", s, "; filter", f);
+            var a = localStorage.getItem("autorefresh");
+
+            console.log("init - state", s, "; filter", f, "autorefresh", a);
 
             if (s) { state = s }
             if (f) { filter = f; }
+            if (a) { autorefresh = parseInt(a); }
+        }
 
+        function init() {
             updateState();
+
             loadList();
+
+            setupAutoRefresh();
+        }
+
+        function setupAutoRefresh() {
+            console.log("setupAutoRefresh");
+            localStorage.setItem("autorefresh", autorefresh);
+
+            // countdown
+            abortCountdownTimer();
+            countdownValue = autorefresh - 1;
+            countdownTimer = setTimeout(countdown, 1000);
+
+            // set timeout
+            abortTimer();
+            timerId = setTimeout(refreshData, autorefresh * 1000);
+        }
+
+        // auto refresh data
+        function refreshData() {
+
+            console.log("..... refresh data .....");
+            loadList();
+            // countdownValue = autorefresh;
+            // abortTimer();
+            // timerId = setTimeout(refreshData, autorefresh * 1000); // repeat myself
+
+            setupAutoRefresh();
+        }
+        function abortTimer() { // to be called when you want to stop the timer
+            if (timerId) {
+                clearTimeout(timerId);
+            }
+        }
+
+        function countdown() {
+            var countdownCtl = document.getElementById("countdown");
+            countdownCtl.textContent = countdownValue--;
+            countdownTimer = setTimeout(countdown, 1000);
+        }
+        function abortCountdownTimer() {
+            if (countdownTimer) {
+                clearTimeout(countdownTimer);
+            }
         }
 
         function changeFilter() {
@@ -74,19 +139,24 @@
         }
 
         function loadList() {
+            console.log("loadList...");
             state == "M" ? loadWidget(loadMultipleList) : loadWidget(loadSingleList);
         }
 
         function toggle() {
             state == "M" ? state = "S" : state = "M";
-
-            updateState();
-            loadList();
+            init();
         }
 
         function updateState() {
             console.log("current state", state);
-            var filterControl = document.getElementById("filter");
+            var autoRefreshInput = document.getElementById("autorefresh");
+            var countdownCtl = document.getElementById("countdown");
+
+            autoRefreshInput.value = autorefresh;
+            countdownCtl.textContent = autorefresh;
+
+            var filterControl = document.getElementById("filterctl");
             var label = "";
             if (state == "S") {
                 label = "Multiple List";
@@ -94,7 +164,7 @@
             }
             else {
                 label = "Single List";
-                filterControl.style.display = "inline";
+                filterControl.style.display = "block";
             }
             document.getElementById("toggolbutton").textContent = label;
             localStorage.setItem("state", state);
@@ -121,7 +191,6 @@
         function loadSingleList(data) {
             console.log("single");
             var list = data.map(row => row.CGID);
-            console.log(list);
             createWatchList(list);
         }
 
@@ -134,7 +203,6 @@
                 !v ? map[obj.Type] = [obj.CGID] : map[obj.Type].push(obj.CGID);
                 return map;
             }, {});
-            console.log(result);
 
             // 1. create the watch list first
             Object.keys(result).map((key) => {
@@ -177,7 +245,6 @@
             if (type) {
                 var h = document.createElement("h4");
                 h.textContent = type;
-                console.log(h);
                 wrapper.appendChild(h);
             }
 
@@ -190,8 +257,9 @@
 
             var hole = document.getElementById("container");
             hole.appendChild(wrapper);
-
         }
+
+
     </script>
 </head>
 
@@ -202,13 +270,28 @@
         <button class="active">Watch List</button>
     </header>
 
-    <span class="w-title">Watch List</span>
-    <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
-            src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
-        Reload
-    </button>
-    <button class="primary shadowed" id="toggolbutton">Single List</button>
-    <select id="filter"></select>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12 col-md-8">
+                <button class="primary shadowed" id="toggolbutton">Single List</button>
+                <span class="small-text">Auto Refresh (s)</span>
+                <input id="autorefresh" type="number" min="10" max="60">
+                <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
+                        src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
+                    Reload (<span id="countdown"></span>)
+                </button>
+
+            </div>
+
+            <div class="col-sm-12 col-md-4">
+                <div id="filterctl" style="float:right">
+                    <label for="filter">Filter</label>
+                    <select id="filter"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="container">
         <div class="row" id="container"></div>
