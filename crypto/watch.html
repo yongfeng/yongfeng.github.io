@@ -17,11 +17,16 @@
         }
 
         .w-title {
-            font-size: larger;
+            /* font-size: larger; */
             font-style: bold;
             vertical-align: middle;
             height: 100%;
+            padding-left: 20px;
 
+        }
+
+        .active {
+            background-color: #ddd;
         }
 
         .w-section {
@@ -175,12 +180,14 @@
     <header>
         <a href="index.html" class="logo"><img width="40" style="vertical-align: middle;" src="logo.png"></a>
         <a href="index.html" class="button">Home</a>
+        <button class="active">Watch List</button>
     </header>
 
-    <h1>Watch List</h1>
-    <button id="reloadbutton"><img width="20" style="vertical-align: middle;"
-            src="https://img.icons8.com/external-becris-lineal-becris/64/000000/external-refresh-mintab-for-ios-becris-lineal-becris.png" />
-        Reload</button>
+    <span class="w-title">Watch List</span>
+    <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
+            src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
+        Reload
+    </button>
     <button class="primary shadowed" id="toggolbutton">Single List</button>
     <select id="filter"></select>
 
