@@ -40,26 +40,37 @@
         var gs_watch_url = "https://opensheet.elk.sh/1mejGkcnF-f_qE4kw47FABEIkv8SZ4QgXAlciUOURYMo/Watch";
 
         var state = "M"; // multiple list
+        var filter = "-"; // all sections
 
         function _onload() {
+            // event listeners
             document.getElementById("reloadbutton").addEventListener("click", () => loadList());
-
-            document.getElementById("toggolbutton").addEventListener("click", (e) => {
-                toggle();
-            });
-
-            document.getElementById("filter").addEventListener("change", (e) => {
-                var opt = e.target.value;
-                var sections = document.getElementsByClassName("w-section");
-                console.log(sections);
-                Array.from(sections).map((s) => { s.id == opt || opt == "-" ? s.style.display = "block" : s.style.display = "none" });
-            });
+            document.getElementById("toggolbutton").addEventListener("click", () => toggle());
+            document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
 
             // initialization
+            init();
+        }
+
+        function init() {
             var s = localStorage.getItem("state");
+            var f = localStorage.getItem("filter");
+            console.log("init - state", s, "; filter", f);
+
             if (s) { state = s }
+            if (f) { filter = f; }
+
             updateState();
             loadList();
+        }
+
+        function changeFilter() {
+            console.log("changeFilter, current filter", filter);
+            localStorage.setItem("filter", filter);
+            var sections = document.getElementsByClassName("w-section");
+            Array.from(sections).map((sec) => {
+                sec.id == filter || filter == "-" ? sec.style.display = "block" : sec.style.display = "none"
+            });
         }
 
         function loadList() {
@@ -125,11 +136,13 @@
             }, {});
             console.log(result);
 
-            createFilterOption(Object.keys(result));
-
+            // 1. create the watch list first
             Object.keys(result).map((key) => {
                 createWatchList(result[key], key)
             });
+
+            // 2. then create the filter
+            createFilterOption(Object.keys(result));
         }
 
         function createFilterOption(types) {
@@ -145,6 +158,12 @@
                 o.value = o.text = type;
                 filterControl.appendChild(o);
             })
+            console.log("constructed filter", filterControl.value);
+            if (filter != filterControl.value) {
+                filterControl.value = filter;
+                console.log("set new filter", filterControl.value);
+                changeFilter();
+            }
         }
 
         function createWatchList(list, type) {
