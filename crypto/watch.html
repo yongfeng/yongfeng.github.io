@@ -14,133 +14,175 @@
             display: table-row
         }
 
+        .w-title {
+            font-size: larger;
+            font-style: bold;
+            padding: 0 20px;
+        }
+
         .w-section {
-            padding: 10px;
+            /* padding: 10px; */
             min-width: 300px;
+            padding-bottom: 20px;
         }
     </style>
     <script>
-        var collection = [
-            {
-                type: "seigniorage",
-                list: "chargedefi-charge,chargedefi-static,hermes,harmes-shares"
-            },
-            {
-                type: "farm",
-                list: "looksrare,liquiddriver,spiritswap,protofi"
-            },
-
-            {
-                type: "node",
-                list: "strong,vapornodes,louverture,thor,project-x-nodes"
-            },
-            {
-                type: "hodl",
-                list: "bitcoin,ethereum,avalanche-2,fantom,ripple,cardano,polkadot,efinity"
-
-            }, {
-                type: "masternode",
-                list: "dash-diamond",
-            }];
+        // https://benborgers.com/posts/google-sheets-json
+        var gs_watch_url = "https://opensheet.elk.sh/1mejGkcnF-f_qE4kw47FABEIkv8SZ4QgXAlciUOURYMo/Watch";
 
         var state = "M"; // multiple list
-        var toggleLabel = "Single List";
 
         function _onload() {
-            document.getElementById("reloadbutton").addEventListener("click", () => reload());
+            document.getElementById("reloadbutton").addEventListener("click", () => loadList());
 
-
-            document.getElementById("singlebutton").addEventListener("click", (e) => {
+            document.getElementById("toggolbutton").addEventListener("click", (e) => {
                 toggle();
-                e.target.textContent = toggleLabel;
             });
 
+            document.getElementById("filter").addEventListener("change", (e) => {
+                var opt = e.target.value;
+                var sections = document.getElementsByClassName("w-section");
+                console.log(sections);
+                Array.from(sections).map((s) => { s.id == opt || opt == "-" ? s.style.display = "block" : s.style.display = "none" });
+            });
+
+            // initialization
             var s = localStorage.getItem("state");
-            if (s) { state = s; if (state == "S") { toggleLabel = "Multiple List" } }
-            document.getElementById("singlebutton").textContent = toggleLabel;
-            reload();
+            if (s) { state = s }
+            updateState();
+            loadList();
         }
 
-        function reload() {
-            state == "M" ? loadMultipleList() : loadSingleList();
+        function loadList() {
+            state == "M" ? loadWidget(loadMultipleList) : loadWidget(loadSingleList);
         }
 
         function toggle() {
-            if (state == "M") {
-                state = "S";
-                loadSingleList();
-                toggleLabel = "Multiple List";
-            } else {
-                state = "M";
-                loadMultipleList();
-                toggleLabel = "Single List"
+            state == "M" ? state = "S" : state = "M";
+
+            updateState();
+            loadList();
+        }
+
+        function updateState() {
+            console.log("current state", state);
+            var filterControl = document.getElementById("filter");
+            var label = "";
+            if (state == "S") {
+                label = "Multiple List";
+                filterControl.style.display = "none";
             }
+            else {
+                label = "Single List";
+                filterControl.style.display = "inline";
+            }
+            document.getElementById("toggolbutton").textContent = label;
             localStorage.setItem("state", state);
         }
 
-        function clearContainer() {
-            var container = document.getElementById("container");
+        function clearELementById(id) {
+            var container = document.getElementById(id);
             while (container.firstChild) {
                 container.removeChild(container.lastChild);
             }
         }
 
-        function loadSingleList() {
-            clearContainer();
-
-            var list = collection.map(i => i.list).join();
-            createWatchList({ list: list });
+        function fetchData(handler) {
+            fetch(gs_watch_url)
+                .then((res) => res.json())
+                .then((data) => { handler(data) });
         }
 
-        function loadMultipleList() {
-            clearContainer();
-
-            collection.forEach((item) => createWatchList(item));
+        function loadWidget(handler) {
+            clearELementById("container");
+            fetchData(handler);
         }
 
-        function createWatchList(item) {
-            var hole = document.getElementById("container");
-            hole.appendChild(createListWidget(item));
+        function loadSingleList(data) {
+            console.log("single");
+            var list = data.map(row => row.CGID);
+            console.log(list);
+            createWatchList(list);
         }
 
-        function createListWidget(item) {
+        function loadMultipleList(data) {
+            console.log("mutiple");
+
+            var result = data.reduce(function (map, obj) {
+
+                var v = map[obj.Type];
+                !v ? map[obj.Type] = [obj.CGID] : map[obj.Type].push(obj.CGID);
+                return map;
+            }, {});
+            console.log(result);
+
+            createFilterOption(Object.keys(result));
+
+            Object.keys(result).map((key) => {
+                createWatchList(result[key], key)
+            });
+        }
+
+        function createFilterOption(types) {
+            clearELementById("filter");
+            var filterControl = document.getElementById("filter");
+            var o = document.createElement("option");
+            o.value = "-";
+            o.text = "ALL";
+            filterControl.appendChild(o);
+
+            types.map((type) => {
+                var o = document.createElement("option");
+                o.value = o.text = type;
+                filterControl.appendChild(o);
+            })
+        }
+
+        function createWatchList(list, type) {
             var wrapper = document.createElement("div");
             wrapper.className = "col-sm w-section";
+            if (type) wrapper.id = type;
 
             // example:
             //     <coingecko-coin-list-widget id="listwidget" coin-ids="bitcoin" currency="usd" locale="en">
             //     </coingecko-coin-list-widget>
-            if (item.type) {
-                var h = document.createElement("h2");
-                h.textContent = item.type;
+            if (type) {
+                var h = document.createElement("h4");
+                h.textContent = type;
                 console.log(h);
                 wrapper.appendChild(h);
             }
 
             var w = document.createElement("coingecko-coin-list-widget");
-            if (item.type) { w.id = item.type; }
             w.setAttribute("currency", "usd");
             w.setAttribute("locale", "en");
-            w.setAttribute("coin-ids", item.list);
+            w.setAttribute("coin-ids", list.join(","));
 
-            console.log(w);
             wrapper.appendChild(w);
 
-            return wrapper;
+            var hole = document.getElementById("container");
+            hole.appendChild(wrapper);
+
         }
     </script>
 </head>
 
 <body onload="_onload()">
-    <h1>Watch List</h1>
+    <header>
+        <a href="index.html" class="logo"><img width="40" style="vertical-align: middle;" src="logo.png"></a>
+        <a href="index.html" class="button">Home</a>
+    </header>
 
-    <button class="primary" id="reloadbutton">Reload</button>
-    <button class="shadowed" id="singlebutton">Single List</button>
+    <span class="w-title">Watch List</span>
+    <button id="reloadbutton"><img width="20" style="vertical-align: middle;"
+            src="https://img.icons8.com/external-becris-lineal-becris/64/000000/external-refresh-mintab-for-ios-becris-lineal-becris.png" />
+        Reload</button>
+    <button class="primary shadowed" id="toggolbutton">Single List</button>
+    <select id="filter"></select>
+
     <div class="container">
         <div class="row" id="container"></div>
     </div>
-
-
 </body>
 
 </html>
