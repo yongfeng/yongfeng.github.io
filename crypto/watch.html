@@ -25,14 +25,41 @@
             overflow-wrap: break-word
         }
 
+        .count {
+            font-size: small;
+            padding-left: 5px;
+        }
+
         .active {
-            background-color: #ddd;
+            background-color: #ccc;
+        }
+
+        .group {
+            display: inline;
+        }
+
+        .group button {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .active-button {
+            background-color: #bbb;
         }
 
         .w-section {
             /* padding: 10px; */
             min-width: 300px;
             padding-bottom: 20px;
+        }
+
+        .img-opt {
+            width: 25px;
+            vertical-align: top;
+        }
+
+        .toggle-radio {
+            padding: 6px;
         }
     </style>
     <script>
@@ -47,13 +74,30 @@
         var refreshTimer;
 
         function _onload() {
-            // event listeners
-            document.getElementById("reloadbutton").addEventListener("click", () => refreshData());
-            document.getElementById("toggolbutton").addEventListener("click", () => toggle());
-            document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
-            document.getElementById("autorefresh").addEventListener("change", (e) => { refreshinterval = e.target.value; setupAutoRefresh() });
-            // initialization
+            // load settings from localStorage
             loadSetting();
+
+            // event listeners
+            var listStyleOptions = document.querySelectorAll("input[type='radio'][name='liststyle']");
+            listStyleOptions.forEach((o) => {
+                console.log("option - value:", o.value)
+                if (listtype == o.value) o.checked = true;
+                o.addEventListener("click", (e) => { liststyle = e.target.value; toggle() })
+            })
+
+            document.getElementById("togglegrp").querySelectorAll("button").forEach((btn) => {
+                if (btn.dataset.listtype == listtype) {
+                    btn.className = "button active-button";
+                }
+                btn.addEventListener("click", (e) => { listtype = btn.dataset.listtype; toggle(); });
+            });
+
+
+            document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
+            document.getElementById("reloadbutton").addEventListener("click", () => refreshData());
+            document.getElementById("autorefresh").addEventListener("change", (e) => { refreshinterval = e.target.value; setupAutoRefresh() });
+
+            // initialization
             init();
         }
 
@@ -91,14 +135,11 @@
             // list type (single/multiple)
             var label = "";
             if (listtype == "S") {
-                label = "Multiple List";
                 filterControl.style.display = "none";
             }
             else {
-                label = "Single List";
                 filterControl.style.display = "inline";
             }
-            document.getElementById("toggolbutton").textContent = label;
             localStorage.setItem("listtype", listtype);
         }
 
@@ -108,7 +149,16 @@
         }
 
         function toggle() {
-            listtype == "M" ? listtype = "S" : listtype = "M";
+            console.log("[toggle] listtype:", listtype);
+            document.getElementById("togglegrp").querySelectorAll("button").forEach((btn) => {
+                if (btn.dataset.listtype == listtype) {
+                    btn.className = "button active-button";
+                }
+                else {
+                    btn.className = "button";
+                }
+            });
+            document.activeElement.blur();
             init();
         }
 
@@ -223,6 +273,11 @@
                 var h = document.createElement("h4");
                 h.textContent = type;
                 wrapper.appendChild(h);
+
+                var count = document.createElement("span");
+                count.className = "count";
+                count.textContent = ["(", list.length, ")"].join("");
+                h.appendChild(count);
             }
 
             var w = document.createElement("coingecko-coin-list-widget");
@@ -249,20 +304,21 @@
 
     <div class="container">
         <div class="row">
-            <div class="col-sm-12 col-md-5">
-                <button class="primary shadowed" id="toggolbutton">Single List</button>
+            <div class="col-sm-12 col-md-6">
+                <div class="group" id="togglegrp">
+                    <button data-listtype="S"><img class="img-opt" src="image/column_one.svg"></button>
+                    <button data-listtype="M"><img class="img-opt" src="image/column_three.svg"></button>
+                </div>
                 <span id="filtergrp">
                     <label for="filter">Filter</label>
                     <select id="filter"></select>
                 </span>
-
             </div>
-
-            <div class="col-sm-12 col-md-7">
+            <div class="col-sm-12 col-md-6">
                 <div style="float: right;">
-                    <label for="autorefresh">Auto Refresh (s)</label>
+                    <label for="autorefresh">Refresh (s)</label>
                     <input id="autorefresh" type="number" min="10" max="60">
-                    <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
+                    <button id="reloadbutton" style="width: 140px;"><img width="15" style="vertical-align: middle;"
                             src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
                         Reload (<span id="countdown"></span>)
                     </button>
