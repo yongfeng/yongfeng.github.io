@@ -5,27 +5,21 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" href="favicon.png">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="asset/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="asset/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="asset/favicon-16x16.png">
+    <link rel="manifest" href="asset/site.webmanifest">
+    <link rel="mask-icon" href="asset/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#b91d47">
+    <meta name="theme-color" content="#ffffff">
+
     <title>Watch List - Oxl☰yrd</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
 
     <script src="https://widgets.coingecko.com/coingecko-coin-list-widget.js"></script>
     <style>
-        .w-hole {
-            display: table-row
-        }
-
-        .w-title {
-            /* font-size: larger; */
-            font-style: bold;
-            vertical-align: middle;
-            height: 100%;
-            padding-left: 20px;
-
-        }
-
         .small-text {
             font-size: small;
             overflow-wrap: break-word
@@ -45,88 +39,103 @@
         // https://benborgers.com/posts/google-sheets-json
         var gs_watch_url = "https://opensheet.elk.sh/1mejGkcnF-f_qE4kw47FABEIkv8SZ4QgXAlciUOURYMo/Watch";
 
-        var state = "M"; // multiple list
+        var listtype = "M"; // multiple list
         var filter = "-"; // all sections
-        var autorefresh = 30; // default: 15 secs
+        var refreshinterval = 30; // default: 30 secs
 
 
-        var timerId;
-        // countdown timer
-        var countdownTimer;
-        var countdownValue = 0;
-
+        var refreshTimer;
 
         function _onload() {
             // event listeners
             document.getElementById("reloadbutton").addEventListener("click", () => refreshData());
             document.getElementById("toggolbutton").addEventListener("click", () => toggle());
             document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
-            document.getElementById("autorefresh").addEventListener("change", (e) => { autorefresh = e.target.value; setupAutoRefresh() });
+            document.getElementById("autorefresh").addEventListener("change", (e) => { refreshinterval = e.target.value; setupAutoRefresh() });
             // initialization
             loadSetting();
             init();
         }
 
         function loadSetting() {
-            var s = localStorage.getItem("state");
+            var s = localStorage.getItem("listtype");
             var f = localStorage.getItem("filter");
-            var a = localStorage.getItem("autorefresh");
+            var r = localStorage.getItem("refreshinterval");
 
-            console.log("init - state", s, "; filter", f, "autorefresh", a);
+            console.log("[localStorage] listtype", listtype, "; filter", filter, "; refreshinterval", refreshinterval);
 
-            if (s) { state = s }
+            if (s) { listtype = s }
             if (f) { filter = f; }
-            if (a) { autorefresh = parseInt(a); }
+            if (r) { refreshinterval = parseInt(r); }
         }
 
         function init() {
-            updateState();
-
+            resetState();
             loadList();
-
             setupAutoRefresh();
         }
 
-        function setupAutoRefresh() {
-            console.log("setupAutoRefresh");
-            localStorage.setItem("autorefresh", autorefresh);
+        function resetState() {
+            console.log("[resetState] listtype", listtype, "; filter", filter, "; refreshinterval", refreshinterval);
 
-            // countdown
-            abortCountdownTimer();
-            countdownValue = autorefresh - 1;
-            countdownTimer = setTimeout(countdown, 1000);
+            // auto refresh
+            var refreshIntervalInput = document.getElementById("autorefresh");
+            var countdownDisplay = document.getElementById("countdown");
 
-            // set timeout
-            abortTimer();
-            timerId = setTimeout(refreshData, autorefresh * 1000);
+            refreshIntervalInput.value = refreshinterval;
+            countdownDisplay.textContent = refreshinterval;
+
+            // filter (for multiple list)
+            var filterControl = document.getElementById("filtergrp");
+
+            // list type (single/multiple)
+            var label = "";
+            if (listtype == "S") {
+                label = "Multiple List";
+                filterControl.style.display = "none";
+            }
+            else {
+                label = "Single List";
+                filterControl.style.display = "inline";
+            }
+            document.getElementById("toggolbutton").textContent = label;
+            localStorage.setItem("listtype", listtype);
         }
 
-        // auto refresh data
-        function refreshData() {
+        function loadList() {
+            console.log("loadList...");
+            listtype == "M" ? loadWidget(loadMultipleList) : loadWidget(loadSingleList);
+        }
 
+        function toggle() {
+            listtype == "M" ? listtype = "S" : listtype = "M";
+            init();
+        }
+
+        // refresh data
+        function refreshData() {
             console.log("..... refresh data .....");
             loadList();
-            // countdownValue = autorefresh;
-            // abortTimer();
-            // timerId = setTimeout(refreshData, autorefresh * 1000); // repeat myself
-
             setupAutoRefresh();
         }
-        function abortTimer() { // to be called when you want to stop the timer
-            if (timerId) {
-                clearTimeout(timerId);
-            }
-        }
 
-        function countdown() {
-            var countdownCtl = document.getElementById("countdown");
-            countdownCtl.textContent = countdownValue--;
-            countdownTimer = setTimeout(countdown, 1000);
-        }
-        function abortCountdownTimer() {
-            if (countdownTimer) {
-                clearTimeout(countdownTimer);
+
+        function setupAutoRefresh() {
+            if (refreshTimer) {
+                console.log("[setupAutoRefresh] clear the current refresh timer");
+                clearTimeout(refreshTimer);
             }
+            console.log("setupAutoRefresh");
+            localStorage.setItem("refreshinterval", refreshinterval);
+
+            (function countdown(remaining) {
+                if (remaining <= 0) {
+                    refreshData();
+                } else {
+                    document.getElementById('countdown').innerHTML = remaining;
+                    refreshTimer = setTimeout(function () { countdown(remaining - 1); }, 1000);
+                }
+            })(refreshinterval);
         }
 
         function changeFilter() {
@@ -136,38 +145,6 @@
             Array.from(sections).map((sec) => {
                 sec.id == filter || filter == "-" ? sec.style.display = "block" : sec.style.display = "none"
             });
-        }
-
-        function loadList() {
-            console.log("loadList...");
-            state == "M" ? loadWidget(loadMultipleList) : loadWidget(loadSingleList);
-        }
-
-        function toggle() {
-            state == "M" ? state = "S" : state = "M";
-            init();
-        }
-
-        function updateState() {
-            console.log("current state", state);
-            var autoRefreshInput = document.getElementById("autorefresh");
-            var countdownCtl = document.getElementById("countdown");
-
-            autoRefreshInput.value = autorefresh;
-            countdownCtl.textContent = autorefresh;
-
-            var filterControl = document.getElementById("filterctl");
-            var label = "";
-            if (state == "S") {
-                label = "Multiple List";
-                filterControl.style.display = "none";
-            }
-            else {
-                label = "Single List";
-                filterControl.style.display = "block";
-            }
-            document.getElementById("toggolbutton").textContent = label;
-            localStorage.setItem("state", state);
         }
 
         function clearELementById(id) {
@@ -272,21 +249,23 @@
 
     <div class="container">
         <div class="row">
-            <div class="col-sm-12 col-md-8">
+            <div class="col-sm-12 col-md-6">
                 <button class="primary shadowed" id="toggolbutton">Single List</button>
-                <span class="small-text">Auto Refresh (s)</span>
-                <input id="autorefresh" type="number" min="10" max="60">
-                <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
-                        src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
-                    Reload (<span id="countdown"></span>)
-                </button>
+                <span id="filtergrp">
+                    <label for="filter">Filter</label>
+                    <select id="filter"></select>
+                </span>
 
             </div>
 
-            <div class="col-sm-12 col-md-4">
-                <div id="filterctl" style="float:right">
-                    <label for="filter">Filter</label>
-                    <select id="filter"></select>
+            <div class="col-sm-12 col-md-6">
+                <div style="float: right;">
+                    <label for="autorefresh">Auto Refresh (s)</label>
+                    <input id="autorefresh" type="number" min="10" max="60">
+                    <button id="reloadbutton"><img width="15" style="vertical-align: middle;"
+                            src="https://img.icons8.com/external-kmg-design-glyph-kmg-design/32/000000/external-refresh-arrow-kmg-design-glyph-kmg-design.png" />
+                        Reload (<span id="countdown"></span>)
+                    </button>
                 </div>
             </div>
         </div>
