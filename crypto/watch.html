@@ -26,7 +26,6 @@
 
         .small-text {
             font-size: small;
-            overflow-wrap: break-word
         }
 
         .count {
@@ -93,10 +92,11 @@
                 btn.addEventListener("click", (e) => { listtype = btn.dataset.listtype; toggle(); });
             });
 
-            document.getElementById("filter").addEventListener("change", (e) => { filter = e.target.value; changeFilter() });
+            document.getElementById("categoryFilter").addEventListener("change", (e) => { filter = e.target.value; changeCategoryFilter() });
             document.getElementById("reloadbutton").addEventListener("click", () => refreshData());
             document.getElementById("autorefresh").addEventListener("change", (e) => updateRefreshInterval(e.target.value));
             document.getElementById("refreshctl").addEventListener("click", (e) => controlRefresh());
+            document.getElementById("test").addEventListener("click", () => fetchCoinInfo());
 
             // initialization
             init();
@@ -131,15 +131,15 @@
             countdownDisplay.textContent = refreshinterval;
 
             // filter (for multiple list)
-            var filterControl = document.getElementById("filtergrp");
+            var categoryFilterControl = document.getElementById("categoryFilterGrp");
 
             // list type (single/multiple)
             var label = "";
             if (listtype == "S") {
-                filterControl.style.display = "none";
+                categoryFilterControl.style.display = "none";
             }
             else {
-                filterControl.style.display = "inline";
+                categoryFilterControl.style.display = "inline";
             }
             localStorage.setItem("listtype", listtype);
         }
@@ -221,7 +221,7 @@
             }
         }
 
-        function changeFilter() {
+        function changeCategoryFilter() {
             console.log("changeFilter, current filter", filter);
             localStorage.setItem("filter", filter);
             var sections = document.getElementsByClassName("w-section");
@@ -241,6 +241,15 @@
             fetch(gs_watch_url)
                 .then((res) => res.json())
                 .then((data) => { handler(data) });
+        }
+
+        function fetchCoinInfo() {
+            console.log("fetchCoinInfo");
+            fetch("https://api.coingecko.com/api/v3/coins/power-nodes?localization=en&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false")
+                .then((res) => res.json())
+                .then((data) => {
+                    console.log(data);
+                });
         }
 
         function loadWidget(handler) {
@@ -270,15 +279,15 @@
             });
 
             // 2. then create the filter
-            createFilterOption(Object.keys(result));
+            createCategoryFilterOption(Object.keys(result));
         }
 
-        function createFilterOption(types) {
-            clearELementById("filter");
-            var filterControl = document.getElementById("filter");
+        function createCategoryFilterOption(types) {
+            clearELementById("categoryFilter");
+            var filterControl = document.getElementById("categoryFilter");
             var o = document.createElement("option");
             o.value = "-";
-            o.text = "ALL";
+            o.text = "All Category";
             filterControl.appendChild(o);
 
             types.map((type) => {
@@ -290,7 +299,7 @@
             if (filter != filterControl.value) {
                 filterControl.value = filter;
                 console.log("set new filter", filterControl.value);
-                changeFilter();
+                changeCategoryFilter();
             }
         }
 
@@ -342,9 +351,9 @@
                     <button data-listtype="S"><img class="img-opt" src="image/column_one.svg"></button>
                     <button data-listtype="M"><img class="img-opt" src="image/column_three.svg"></button>
                 </div>
-                <span id="filtergrp">
-                    <label for="filter">Filter</label>
-                    <select id="filter"></select>
+                <span id="categoryFilterGrp">
+                    <label for="categoryFilter">Filter</label>
+                    <select id="categoryFilter"></select>
                 </span>
             </div>
             <div class="col-sm-12 col-md-6">
@@ -367,6 +376,9 @@
         <div class="row" id="container"></div>
     </div>
 
+    <footer>
+        <p class="small-text">© 2022 Oxl☰yrd</p> <button id="test">Test</button>
+    </footer>
 </body>
 
 </html>
